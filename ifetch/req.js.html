@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>req.js - Documentation</title>
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+    <script src="scripts/nav.js" defer></script>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav >
+    
+    
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="IFetch.html">IFetch</a><ul class='methods'><li data-type='method'><a href="IFetch.html#bind">bind</a></li><li data-type='method'><a href="IFetch.html#get">get</a></li><li data-type='method'><a href="IFetch.html#on">on</a></li><li data-type='method'><a href="IFetch.html#post">post</a></li><li data-type='method'><a href="IFetch.html#send">send</a></li><li data-type='method'><a href="IFetch.html#un">un</a></li></ul></li><li><a href="Interceptor.html">Interceptor</a><ul class='methods'><li data-type='method'><a href="Interceptor.html#off">off</a></li><li data-type='method'><a href="Interceptor.html#use">use</a></li></ul></li><li><a href="IRequest.html">IRequest</a><ul class='methods'><li data-type='method'><a href="IRequest.html#parser">parser</a></li><li data-type='method'><a href="IRequest.html#resolver">resolver</a></li><li data-type='method'><a href="IRequest.html#toRequest">toRequest</a></li></ul></li></ul><h3>Modules</h3><ul><li><a href="module-ift.html">ift</a><ul class='methods'><li data-type='method'><a href="module-ift.html#.defineIFetch">defineIFetch</a></li></ul></li><li><a href="module-req.html">req</a><ul class='methods'><li data-type='method'><a href="module-req.html#.defineIRequest">defineIRequest</a></li></ul></li></ul>
+    
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">req.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @module req
+ * @description This is the main file of the htp module.
+ */
+/**
+ * @file Manages the configuration settings for the widget.
+ */
+
+import Interceptor, {tri} from './interceptor.js';
+// import {on as $$on, un as $$un, emit as $$emit} from './utils.js';
+import parseHttpReq       from './parse-http-req.js'
+
+const REQ_OPTS   = ['method', 'headers', 'mode', 'credentials', 'cache', 'redirect', 'referrer', 'integrity'];
+
+ /**
+  * @alias IRequest
+  * @inner
+  * @private
+  * @extends Request
+*/
+class  IRequest  {
+    constructor({url,data,method,headers,...opts}={},{resolver, parser, interceptors}={}){
+        headers = headers || new Headers();
+        if (headers&amp;&amp;!(headers instanceof Headers)) {
+            let headersEntries = Array.isArray(headers) ? headers : Object.entries(headers);
+            headers            = new Headers(headersEntries);
+        }
+         /**
+         * @property {Object} interceptors
+         * @property {Interceptor} interceptors.request
+         * @property {Interceptor} interceptors.response
+         * @description ift对象的拦截器属性，可以用于在请求发送前或响应返回后进行一些处理。
+         */
+        this.interceptors = {
+            request:  new Interceptor(interceptors?.request),
+            response: new Interceptor(interceptors?.response)
+        };
+        this.method = method || "GET";
+         /**
+         * @property {string|function} url
+         * @description ift对象的拦截器属性，可以用于在请求发送前或响应返回后进行一些处理。
+         */
+        this.url    = typeof url  === 'function' ? url : (v) => v || url;
+         /**
+         * @property {Object|function} data
+         * @description ift对象的拦截器属性，可以用于在请求发送前或响应返回后进行一些处理。
+         */
+        this.data   = typeof data === 'function' ? data : (v) => v || data;
+        Object.assign(this, opts);
+        if (resolver) {
+            this.resolver = resolver;
+        }
+        if (parser) {
+            this.parser = parser;
+        }
+        if(!headers){
+            headers = new Headers();
+        }
+        if(!headers.get('Content-Type')){
+            switch (method) {
+                case "GET":
+                    headers.set('Content-Type', 'application/x-www-form-urlencoded');
+                    break;
+                case "POST":
+                    headers.set('Content-Type', 'application/json');
+                    break;
+            }
+        }
+         /**
+         * @property {Headers} headers
+         * @description ift对象的拦截器属性，可以用于在请求发送前或响应返回后进行一些处理。
+         */
+        this.headers = headers;
+    }
+    // /**
+    //  * @ignore
+    //  * @param data
+    //  * @param ext
+    //  * @return {{data: *, url: *}}
+    //  */
+    // get(data, ext) {
+    //     const ths  = this, dtaFn = this.data, dta = ths.data(data, ext);
+    //     this.data  = () => data;
+    //     const url  = ths.url();
+    //     data       = ths.parser ? ths.parser(data) : data;
+    //     let opts = {data: dta, url};
+    //     REQ_OPTS.forEach(k => opts[k] = ths[k]);
+    //     opts     = tri.apply(this.interceptors.request, [opts, this]);
+    //     ths.data  = dtaFn;
+    //     return opts;
+    // }
+    /**
+     *
+     * @param data
+     * @param ext
+     * @return {{data: *, url: *}}
+     */
+    toRequest($data, $ext) {
+        let ths  = this, dtaFn = this.data, dta = ths.data($data, $ext);
+        this.data  = () => dta;
+        const url  = ths.url();
+        dta        = ths.parser ? ths.parser(dta,$ext) : dta;
+        let opts   = {data: dta, url};
+        REQ_OPTS.forEach(k => opts[k] = ths[k]);
+        // irequest请求拦截器,参数为配置信息
+        [opts]     = tri.apply(this.interceptors.request, [[opts,$ext], ths]);
+        ths.data   = dtaFn;
+        if(opts.data){
+            let type   = opts.headers.get('Content-Type');
+            let data   = parseHttpReq(type, opts.data);
+            type === 'application/x-www-form-urlencoded' ? opts.url += `?${data}` : opts.body = data;
+        }
+        Reflect.deleteProperty(opts,'data');
+        return opts;
+    }
+
+    /**
+     *
+     * @param data
+     * @return {*}
+     */
+    parser(data) {
+        return data;
+    }
+    /**
+     *
+     * @param data
+     * @return {*}
+     */
+    resolver(data) {
+        return data;
+    };
+}
+/**
+ * The complete Triforce, or one or more components of the Triforce.
+ * @name module:req.irequest
+ * @type {IRequest}
+ * 
+ */
+export const irequest = new IRequest();
+/**
+ * 
+ * 创建一个IRequest对象
+ * @function module:req.defineIRequest
+ * @param {Object} $opts request配置,同Request
+ * @param {Object} $config
+ * @returns {IRequest}
+ */
+export  function defineIRequest($opts, $config= {}) {
+    let {resolver, parser, interceptors} = $config;
+    if (typeof $opts === 'string') {
+        $opts = {url: $opts};
+    }
+    let {url, method='GET', data, headers, ...opts} = $opts;
+    headers ??= new Headers(irequest.headers.entries());
+    interceptors = {
+        request : [interceptors?.request ].concat(irequest.interceptors.request.get()),
+        response: [interceptors?.response].concat(irequest.interceptors.response.get())
+    };
+    return new IRequest({url, method, data, headers, ...opts},{interceptors, resolver, parser});
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.11</a> on Sun May 05 2024 23:49:19 GMT+0800 (中国标准时间) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+
+
+</body>
+</html>
